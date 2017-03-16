@@ -39,7 +39,11 @@ function testbed_test() {
       return 'Success';
     }
 
-    return $result;
+    if (is_string($result)) {
+      return $result;
+    }
+
+    return sprintf('Result: %d', $result);
   }
   else {
     drupal_set_message(t("Undefined function @function", ['@function' => $function]), 'error');
