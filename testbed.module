@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file_load
+ * Testbed Module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function testbed_menu() {
+  $items['test'] = array(
+    'title' => 'Test',
+    'page callback' => 'testbed_test',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+function testbed_test() {
+  $args = func_get_args();
+
+  if (count($args) < 1) {
+    drupal_set_message(t('Please specify a function to test.'), 'error');
+    return 'Fail';
+  }
+
+  $function = array_shift($args);
+
+  // @todo Sanitize inputs!
+
+  if (function_exists($function)) {
+    $result = call_user_func_array($function, $args);
+    drupal_set_message(t('Ran Function @function', ['@function' => $function]));
+
+    if (is_array($result) || is_object($result)) {
+      dpm($result);
+      return 'Success';
+    }
+
+    return $result;
+  }
+  else {
+    drupal_set_message(t("Undefined function @function", ['@function' => $function]), 'error');
+    return 'Fail';
+  }
+
+}
+
+function testbed_sample() {
+  return func_get_args();
+}
