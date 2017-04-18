@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file_load
+ * @file
  * Testbed Module.
  */
 
@@ -18,6 +18,36 @@ function testbed_menu() {
   return $items;
 }
 
+/**
+ * Log a variable to watchdog.
+ *
+ * @param mixed $var
+ *   The variable to log.
+ * @param string $label
+ *   (Optional) The label to use for the watchdog entry. Defaults to "Testbed".
+ */
+function testbed_log($var, $label = 'Testbed') {
+  if (module_exists('devel')) {
+    dfb($var);
+  }
+
+  watchdog($label, '<pre>!dump</pre>', array('!dump' => print_r($var, TRUE)));
+}
+
+/**
+ * Callback function for Testbed.
+ *
+ * To use this function go to /test/<function_to_test>
+ *
+ * To pass arguments to the function you are testing, provide them as
+ * additional path arguments.
+ *
+ * E.G. To test loading Node 123 with node_load, go to /test/node_load/123
+ *
+ * At present, only scalar arguments are supported (i.e. Strings and
+ * Integers). Even then, strings with spaces are problematic, as the URL will
+ * translate the spaces to the %20 placeholder. Be aware of this.
+ */
 function testbed_test() {
   $args = func_get_args();
 
@@ -35,7 +65,13 @@ function testbed_test() {
     drupal_set_message(t('Ran Function @function', ['@function' => $function]));
 
     if (is_array($result) || is_object($result)) {
-      dpm($result);
+      if (module_exists('devel')) {
+        dpm($result);
+      }
+      else {
+        drupal_set_message(sprinf('<pre>%s</pre>', print_r($result, TRUE)));
+      }
+
       return 'Success';
     }
 
@@ -52,6 +88,11 @@ function testbed_test() {
 
 }
 
+/**
+ * Sample Testbed Function.
+ *
+ * To run this function go to /test/testbed_sample.
+ */
 function testbed_sample() {
   return func_get_args();
 }
