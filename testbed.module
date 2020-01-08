@@ -9,13 +9,28 @@
  * Implements hook_menu().
  */
 function testbed_menu() {
-  $items['test'] = array(
+  $items['testbed'] = array(
     'title' => 'Test',
     'page callback' => 'testbed_test',
     'access arguments' => array('administer site configuration'),
   );
 
+  $items['form'] = array(
+    'title' => 'Form',
+    'page callback' => 'testbed_form',
+    'access arguments' => array('administer site configuration'),
+  );
+
   return $items;
+}
+
+/**
+ * Implements hook_query_alter().
+ */
+function testbed_query_alter($query) {
+  if ($query->hasTag('testbed') || variable_get('testbed_print_all_queries', 0) == 1) {
+    dpm((string) $query);
+  }
 }
 
 /**
@@ -32,6 +47,57 @@ function testbed_log($var, $label = 'Testbed') {
   }
 
   watchdog($label, '<pre>!dump</pre>', array('!dump' => print_r($var, TRUE)));
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function testbed_form_alter(&$form, &$form_state, $form_id) {
+//  dpm($form);
+//  dpm($form_state);
+//  dpm($form_id);
+}
+
+/**
+ * Load and debug a form.
+ */
+function testbed_form() {
+  $args = func_get_args();
+
+  if (count($args) < 1) {
+    drupal_set_message(t('Please specify a form to load.'), 'error');
+    return 'Fail';
+  }
+
+  $form_id = array_shift($args);
+
+  // @todo Sanitize inputs!
+
+  if (function_exists($form_id)) {
+    $result = drupal_get_form($form_id);
+    drupal_set_message(t('Form @form_id', ['@form_id' => $form_id]));
+
+    if (is_array($result) || is_object($result)) {
+      if (module_exists('devel')) {
+        dpm($result);
+      }
+      else {
+        drupal_set_message(sprinf('<pre>%s</pre>', print_r($result, TRUE)));
+      }
+
+      return 'Success';
+    }
+
+    if (is_string($result)) {
+      return $result;
+    }
+
+    return sprintf('Result: %d', $result);
+  }
+  else {
+    drupal_set_message(t("Undefined form @form_id", ['@form_id' => $form_id]), 'error');
+    return 'Fail';
+  }
 }
 
 /**
@@ -61,12 +127,16 @@ function testbed_test() {
   // @todo Sanitize inputs!
 
   if (function_exists($function)) {
+    $before = microtime(TRUE);
     $result = call_user_func_array($function, $args);
+    $after = microtime(TRUE);
     drupal_set_message(t('Ran Function @function', ['@function' => $function]));
+    dpm($args, 'Arguments');
+    dpm(sprintf('Execution Time: %f seconds', $after - $before));
 
     if (is_array($result) || is_object($result)) {
       if (module_exists('devel')) {
-        dpm($result);
+        dpm($result, 'Result');
       }
       else {
         drupal_set_message(sprinf('<pre>%s</pre>', print_r($result, TRUE)));
